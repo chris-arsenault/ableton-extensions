@@ -26,7 +26,7 @@ packages/
     manifest.json           Live extension manifest (real schema)
     src/index.ts            SDK-facing entry point — the only file touching the SDK
     src/capture.ts          host-agnostic orchestration (real, tested)
-vendor/                     vendored @ableton-extensions/{sdk,cli} tgz (not on npm)
+vendor/                     @ableton-extensions/{sdk,cli} tgz — closed beta, gitignored; supply locally (vendor/README.md)
 docs/                       design + contracts (read these first)
 ```
 

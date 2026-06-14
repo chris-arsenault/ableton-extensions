@@ -2,7 +2,7 @@
 
 The [Extensions SDK](https://ableton.github.io/extensions-sdk/) launched as a **public beta on 2026-06-02** alongside **Live 12.4.5 Suite**. It lets you build JavaScript/TypeScript tools that run *inside* Live, triggered from the right-click context menu.
 
-**Status: pinned.** The beta bundle (`extensions-sdk-1.0.0-beta.0.zip`) is vendored in this repo and the SDK is wired in for real — package `@ableton-extensions/sdk` 1.0.0-beta.0, extracted to `vendor/` and referenced via `file:`. Everything below is verified against its `dist/index.d.mts` and the bundled `examples/`. The earlier "placeholder, treat as a guess" caveats no longer apply to `index.ts`, `notes.ts`, or `manifest.json`.
+**Status: pinned.** The beta bundle (`extensions-sdk-1.0.0-beta.0.zip`) is vendored **locally** (gitignored — closed beta, not redistributable) and the SDK is wired in for real — package `@ableton-extensions/sdk` 1.0.0-beta.0, extracted to `vendor/` and referenced via `file:`. Everything below is verified against its `dist/index.d.mts` and the bundled `examples/`. The earlier "placeholder, treat as a guess" caveats no longer apply to `index.ts`, `notes.ts`, or `manifest.json`.
 
 ## The real API (verified against the beta bundle)
 
@@ -43,7 +43,7 @@ The bundle ships `@ableton-extensions/cli`. From the extension dir:
 
 ## Where the bundle lives
 
-`extensions-sdk-1.0.0-beta.0.zip` (root, gitignored) is the Centercode download. Its three tgz packages are `@ableton-extensions/{sdk,cli}` (vendored under `vendor/`) and `@ableton-extensions/create-extension` (the scaffolder). Full HTML API reference is inside the zip under `api/`.
+The Extensions SDK is a **closed beta and may not be redistributed**, so nothing from it is committed to this repo — not the `extensions-sdk-1.0.0-beta.0.zip` Centercode download (root, gitignored) nor the tgz packages extracted from it (`vendor/*.tgz`, gitignored). Supply them locally from your own beta access; see [`vendor/README.md`](../vendor/README.md). The zip's three tgz are `@ableton-extensions/{sdk,cli}` (used by the build) and `@ableton-extensions/create-extension` (the scaffolder); the full HTML API reference is inside the zip under `api/`.
 
 ## Reference links
 
