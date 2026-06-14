@@ -1,0 +1,13 @@
+{
+  "name": "@sulion-ableton/test-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ableton-extensions/sdk": "file:../../vendor/ableton-extensions-sdk-1.0.0-beta.0.tgz"
+  }
+}

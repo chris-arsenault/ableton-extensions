@@ -16,6 +16,7 @@
     "@sulion-ableton/shared": "*"
   },
   "devDependencies": {
-    "@ableton-extensions/cli": "file:../../vendor/ableton-extensions-cli-1.0.0-beta.0.tgz"
+    "@ableton-extensions/cli": "file:../../vendor/ableton-extensions-cli-1.0.0-beta.0.tgz",
+    "@sulion-ableton/test-host": "*"
   }
 }

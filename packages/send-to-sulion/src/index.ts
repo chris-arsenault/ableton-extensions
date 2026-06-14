@@ -83,8 +83,8 @@ export function activate(activation: ActivationContext): void {
             { config },
           );
         } catch (err) {
+          // captureAndSend has already set an actionable status; just log the detail.
           console.error("Send to Sulion failed:", err);
-          await update(`Failed: ${err instanceof Error ? err.message : String(err)}`);
         }
       },
     );

@@ -7,6 +7,9 @@ export default defineConfig({
       "@sulion-ableton/shared": fileURLToPath(
         new URL("./shared/src/index.ts", import.meta.url),
       ),
+      "@sulion-ableton/test-host": fileURLToPath(
+        new URL("./packages/test-host/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {

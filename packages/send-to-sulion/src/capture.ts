@@ -41,20 +41,31 @@ export async function captureAndSend(
     return;
   }
 
-  let creds = await ensureCredentials(config, host);
-
-  host.setStatus(`Sending ${payload.notes.length} notes…`);
   try {
-    const res = await ingestClip(config, creds, payload);
-    host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
-  } catch (err) {
-    if (err instanceof SulionAuthError) {
-      // Cached token went stale between load and use — re-pair once, then retry.
-      creds = await runPairing(config, host);
+    let creds = await ensureCredentials(config, host);
+
+    host.setStatus(`Sending ${payload.notes.length} notes…`);
+    try {
       const res = await ingestClip(config, creds, payload);
       host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+    } catch (err) {
+      if (err instanceof SulionAuthError) {
+        // Cached token went stale between load and use — re-pair once, then retry.
+        creds = await runPairing(config, host);
+        const res = await ingestClip(config, creds, payload);
+        host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+        return;
+      }
+      throw err;
+    }
+  } catch (err) {
+    // The user cancelled (e.g. during pairing) — stop calmly, not as an error.
+    if (host.isCancelled()) {
+      host.setStatus("Cancelled");
       return;
     }
+    // Otherwise show an actionable terminal status; the SDK edge logs the detail.
+    host.setStatus("Couldn't reach Sulion — check it's running");
     throw err;
   }
 }
