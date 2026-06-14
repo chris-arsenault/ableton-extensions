@@ -7,11 +7,12 @@ handler there.
 
 Base URL comes from `SULION_BASE_URL` (default `http://localhost:8080`). All bodies are JSON.
 
-> Status: **implemented (backend).** The three device endpoints below plus
-> `/api/midi/ingest` exist in the `../sulion` repo (`backend/src/api/device_routes.rs`,
-> `midi_routes.rs`, migration `0052_device_pairing_and_midi_ingest.sql`) and are
-> covered by `backend/tests/device_integration.rs`. **Still to build:** the
-> frontend `/pair` approval page that calls `POST /api/devices/pair/approve`.
+> Status: **implemented.** The three device endpoints below plus `/api/midi/ingest`
+> exist in the `../sulion` repo (`backend/src/api/device_routes.rs`, `midi_routes.rs`,
+> migration `0052_device_pairing_and_midi_ingest.sql`, tests
+> `device_integration.rs`), and the browser approval page is built
+> (`frontend/src/components/PairPage.tsx`, `PairPage.test.tsx`). The whole pairing +
+> ingest loop is wired end to end on the Sulion side.
 
 ## Auth model
 
@@ -93,12 +94,16 @@ token itself is minted later, at poll time (so plaintext is never stored on the
 pairing). When backend auth is disabled (local dev / tests) the caller is the
 synthetic `dev` user.
 
-### Frontend `/pair` page (still to build)
+### Frontend `/pair` page — built
 
 `SULION_PUBLIC_URL` (backend env, default `http://localhost:5173`) determines the
 `verification_uri` returned by pair-start. The SPA route `/pair?code=WXYZ-1234`
-should: read `code` from the query, show "Approve **{client}**?", and `POST` it to
-`/api/devices/pair/approve` with the user's bearer token.
+(`frontend/src/components/PairPage.tsx` in the `../sulion` repo) reads `code` from
+the query, lets the logged-in user confirm it, and `POST`s to
+`/api/devices/pair/approve` via the shared `authFetch` (which attaches their
+Cognito bearer). It's rendered inside the app's `AuthGate`, so an unauthenticated
+visitor logs in first; on success it shows which `client` was approved. Hard loads
+of `/pair` resolve via the nginx SPA fallback. Covered by `PairPage.test.tsx`.
 
 ---
 

@@ -19,7 +19,14 @@ milestone. Consequences for how this backlog is ordered:
   M8 should hold few surprises. Treat "could a fake-host test cover this?" as the
   default question before reaching for Live.
 
-Done so far: **M0**, **M1**.
+Scope: this repo owns **only the extensions/client code**. The Sulion side (backend
+endpoints + the browser pairing page, **M2**) is built by a separate agent and is
+done; it appears here as the dependency the extensions integrate against, not as work
+for this repo. [sulion-api.md](sulion-api.md) is the authoritative contract — if a
+request/response shape needs to change, update that doc and flag it for the Sulion
+agent rather than implementing anything server-side here.
+
+Done so far: **M0**, **M1**. Externally complete: **M2**.
 
 ## M0 — Toolchain up (no SDK needed) — DONE
 
@@ -39,19 +46,19 @@ Source of truth: the vendored beta bundle (`extensions-sdk-1.0.0-beta.0.zip` →
 - [x] Updated [extensions-sdk.md](extensions-sdk.md) and the browser-open path in [auth.md](auth.md).
 - [x] `typecheck` + `test` + `build` green; the bundle exports `activate`.
 
-## M2 — Sulion backend + pairing page (no Live needed)
+## M2 — Sulion backend + pairing page (owned by the Sulion agent — DONE)
 
-Server-side and browser-side work, verifiable in the `../sulion` repo and a browser
-— Live is never in the loop here. Built to [sulion-api.md](sulion-api.md)
-(`backend/src/api/device_routes.rs`, `midi_routes.rs`, migration `0052`, tests
-`device_integration.rs`):
+**Not this repo's work** — listed as the dependency the extensions rely on. Built and
+verified in the `../sulion` repo and a browser (Live is never in the loop) to
+[sulion-api.md](sulion-api.md) (`backend/src/api/device_routes.rs`, `midi_routes.rs`,
+migration `0052`, tests `device_integration.rs`):
 
 - [x] `POST /api/devices/pair` + `POST /api/devices/pair/token` (public device-auth).
 - [x] `POST /api/devices/pair/approve` (Cognito-authenticated) binding the pairing to the logged-in user.
 - [x] `POST /api/midi/ingest` (device-token auth) — stored in the new `midi_clips` table (JSONB notes).
 - [x] Device-token issuance + revocation model (`device_tokens.revoked_at`; only hashes stored).
-- [ ] **Frontend `/pair` approval page** (React SPA) — reads `?code=`, calls `/api/devices/pair/approve`. The remaining piece for the browser half of pairing.
-- [ ] (Optional) device-list UI for revocation; relate device tokens to the existing secret broker.
+- [x] **Frontend `/pair` approval page** (React SPA, `frontend/src/components/PairPage.tsx`) — reads `?code=`, calls `/api/devices/pair/approve` with the Cognito bearer; rendered inside `AuthGate`; tested in `PairPage.test.tsx`.
+- [ ] (Optional, Sulion-side) device-list UI for revocation; relate device tokens to the existing secret broker.
 
 ## M3 — Fake-host harness (this is what lets us defer Live)
 
