@@ -6,7 +6,7 @@ First and reference extension: **send-to-sulion** — right-click a clip → sen
 
 ## Status
 
-The shared library (config, note serialization, device-pairing auth, Sulion HTTP client) is real and unit-tested, and the **SDK is pinned**: `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 (vendored from the beta bundle under `vendor/`), `typecheck` + `test` + `build` are green, and the build emits a single CJS `dist/index.js` exporting `activate`. What's left is running it inside Live 12.4.5 (needs the beta + Node 24 — see [docs/backlog.md](docs/backlog.md) M3). See [docs/extensions-sdk.md](docs/extensions-sdk.md) for the verified API.
+The shared library (config, note serialization, device-pairing auth, Sulion HTTP client) is real and unit-tested, and the **SDK is pinned**: `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 (vendored from the beta bundle under `vendor/`), `typecheck` + `test` + `build` are green, and the build emits a single CJS `dist/index.js` exporting `activate`. The remaining feature work is built and tested off-Live; verification inside Live 12.4.5 is deliberately deferred to a single final pass (see [docs/backlog.md](docs/backlog.md) — strategy + M8). See [docs/extensions-sdk.md](docs/extensions-sdk.md) for the verified API.
 
 ## Requirements
 

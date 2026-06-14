@@ -19,7 +19,7 @@ The Extensions SDK launched as a **Live 12.4.5 public beta** (June 2 2026). Its 
 - **Notes:** `MidiClip.notes` → `NoteDescription[]` (`pitch`/`startTime`/`duration`/optional `velocity`/`muted`/…). **UI:** `ui.withinProgressDialog(text, opts, cb)`.
 - **Filesystem is not sandboxed:** full `node:fs` plus a managed `environment.storageDirectory` for credentials. The browser-open step uses `node:child_process` (no SDK primitive for it).
 
-What remains is **running the built extension inside Live 12.4.5** (M3) — not possible on this dev host (Node 20, no Live). `typecheck` + `test` + `build` are green and the bundle exports `activate`.
+**Live verification is deferred to one final pass.** Transferring a build to the Ableton machine is costly, so all remaining features are built and tested *off-Live* — a fake Extensions SDK host (backlog M3) drives the real `activate()` → capture → ingest flow against a local Sulion — and the extension is run inside Live 12.4.5 exactly once, when the feature set is complete (backlog M8). Every milestone but the last must stay green (`typecheck` + `test` + `build`) without Live. The bundle exports `activate`.
 
 ## Architecture rule — keep the SDK at the edge
 
@@ -28,7 +28,7 @@ Business logic must stay SDK-independent and unit-tested:
 - `shared/` and `packages/*/src/capture.ts` — **real, tested, no SDK imports.** They operate on the canonical `SulionNote`/`SulionClipPayload` types.
 - `packages/*/src/index.ts` — the **only** file that touches the SDK. Keep it thin: translate SDK objects → canonical types, then delegate to `capture.ts`.
 
-This boundary is what lets you build and test everything *before* the SDK types are confirmed, and it isolates the one risky unknown.
+This boundary is what lets the fake SDK host (backlog M3) drive the whole flow in tests, so features can be built and verified without Live until the final pass (M8).
 
 ## Working rules
 
