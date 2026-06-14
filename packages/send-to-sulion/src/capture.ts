@@ -1,0 +1,81 @@
+/**
+ * Host-agnostic orchestration for "Send to Sulion": resolve auth (pairing if
+ * needed), POST the clip, and report progress. Takes already-normalized notes so
+ * it has NO dependency on the Extensions SDK and is fully unit-testable.
+ */
+
+import {
+  ingestClip,
+  loadCredentials,
+  pollForToken,
+  resolveConfig,
+  saveCredentials,
+  startPairing,
+  SulionAuthError,
+  type SulionClipPayload,
+  type SulionConfig,
+  type StoredCredentials,
+} from "@sulion-ableton/shared";
+
+/** The bits of UI/host behaviour capture needs, injected so tests can fake them. */
+export interface ProgressHost {
+  setStatus(message: string): void;
+  isCancelled(): boolean;
+  /** Open a URL in the user's browser (for the pairing approval step). */
+  openUrl(url: string): void | Promise<void>;
+}
+
+export interface CaptureDeps {
+  config?: SulionConfig;
+}
+
+export async function captureAndSend(
+  payload: SulionClipPayload,
+  host: ProgressHost,
+  deps: CaptureDeps = {},
+): Promise<void> {
+  const config = deps.config ?? resolveConfig();
+
+  if (payload.notes.length === 0) {
+    host.setStatus("Clip has no notes");
+    return;
+  }
+
+  let creds = await ensureCredentials(config, host);
+
+  host.setStatus(`Sending ${payload.notes.length} notes…`);
+  try {
+    const res = await ingestClip(config, creds, payload);
+    host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+  } catch (err) {
+    if (err instanceof SulionAuthError) {
+      // Cached token went stale between load and use — re-pair once, then retry.
+      creds = await runPairing(config, host);
+      const res = await ingestClip(config, creds, payload);
+      host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+      return;
+    }
+    throw err;
+  }
+}
+
+async function ensureCredentials(
+  config: SulionConfig,
+  host: ProgressHost,
+): Promise<StoredCredentials> {
+  const existing = await loadCredentials(config);
+  if (existing) return existing;
+  return runPairing(config, host);
+}
+
+async function runPairing(
+  config: SulionConfig,
+  host: ProgressHost,
+): Promise<StoredCredentials> {
+  const start = await startPairing(config);
+  await host.openUrl(start.verification_uri_complete ?? start.verification_uri);
+  host.setStatus(`Approve in browser (code ${start.user_code})…`);
+  const creds = await pollForToken(config, start, undefined, () => !host.isCancelled());
+  await saveCredentials(config, creds);
+  return creds;
+}

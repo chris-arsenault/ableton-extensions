@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# The Centercode SDK download. Its needed packages are extracted to vendor/ and
+# committed; the full zip is large and re-downloadable, so it stays out of git.
+extensions-sdk-1.0.0-beta.0.zip
+
+# Local credential cache written by the auth client (never commit real tokens)
+.sulion/
+credentials.json
+
+# Local env overrides
+.env
+.env.local

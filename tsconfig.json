@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@sulion-ableton/shared": ["shared/src/index.ts"]
+    },
+    "noEmit": true
+  },
+  "include": [
+    "shared/src/**/*.ts",
+    "packages/*/src/**/*.ts"
+  ]
+}
