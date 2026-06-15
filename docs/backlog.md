@@ -15,7 +15,7 @@ final one is completable on a dev host with **no Ableton Live install** and must
 - **External (the `../sulion` repo, another agent):** device pairing, the generic
   file-ingest endpoint, and the device-authed raw **download** (`GET …/raw?path=`) are all
   live. Shared file contract: `../sulion/docs/ableton-file-contract.md`.
-- **Not built yet:** lint/CI (Phase 3), and the one-time Live verification (Phase 5).
+- **Not built yet:** the one-time Live verification (Phase 5).
 
 ## Two standing constraints
 
@@ -74,12 +74,17 @@ generic file upload.
   **automation is not capturable** — the beta SDK exposes only `DeviceParameter.getValue`/
   `setValue`, no envelopes — so this stays notes-only until the SDK adds an automation API.
 
-## Phase 3 — DX + CI
+## Phase 3 — DX + CI — DONE
 
-- [ ] eslint + `npm run lint` (mirror the SDK's eslint config).
-- [ ] GitHub Actions on Node 24: `typecheck` + `test` + `build` + `lint`.
-- [ ] `npm run package` per extension (`extensions-cli package` → `.ablx`); confirm the
-  archive builds in CI.
+- [x] eslint (flat config, `typescript-eslint` recommended) + `npm run lint`; `npm run ci`
+  runs the whole local gate (typecheck + test + build + lint).
+- [x] `npm run package` per extension (`extensions-cli package` → `.ablx`); all three
+  archives build locally.
+- [x] GitHub Actions workflow (`.github/workflows/ci.yml`, Node 24: typecheck + test +
+  build + lint + package). It **fails at `npm ci` until the SDK is public** — the
+  closed-beta `vendor/*.tgz` aren't in the repo. Development is local-only (`npm run ci`);
+  when Ableton publishes the SDK, switch the `@ableton-extensions/*` deps from `file:` to
+  the published version and CI goes green.
 
 ## Phase 4 — Feature-complete gate
 

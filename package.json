@@ -2,6 +2,7 @@
   "name": "ableton-extensions",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "description": "Ableton Live Extensions (Extensions SDK) — personal tools that bridge Live into the Sulion family of services.",
   "engines": {
     "node": ">=24.16.0"
@@ -15,14 +16,20 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npm run build --workspaces --if-present",
-    "lint": "echo \"(no linter configured yet)\" && exit 0",
+    "lint": "eslint .",
+    "ci": "npm run typecheck && npm test && npm run build && npm run lint",
+    "package": "npm run package --workspaces --if-present",
     "dev:harness": "tsx packages/send-to-sulion/scripts/dev-harness.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24.0.0",
     "esbuild": "^0.23.0",
+    "eslint": "^10.5.0",
+    "globals": "^17.6.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",
+    "typescript-eslint": "^8.61.0",
     "vitest": "^2.0.0"
   }
 }

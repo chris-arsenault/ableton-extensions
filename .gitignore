@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+*.ablx
 .DS_Store
 
 # Ableton Extensions SDK — CLOSED BETA, not redistributable. Neither the Centercode

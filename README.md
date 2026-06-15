@@ -38,7 +38,14 @@ npm install
 npm run typecheck
 npm test                # vitest — shared + package unit tests
 npm run build           # bundle each extension's dist/index.js (esbuild)
+npm run lint            # eslint
+npm run ci              # typecheck + test + build + lint (the local gate)
+npm run package         # build each extension's .ablx archive
 ```
+
+CI runs the same gate (`.github/workflows/ci.yml`), but it can't install the
+closed-beta SDK from a fresh checkout, so it fails until the SDK is published —
+develop locally with `npm run ci` for now.
 
 Config (set in your shell, or via `with-cred` in the managed Sulion PTY):
 

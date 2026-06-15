@@ -1,0 +1,28 @@
+name: CI
+
+# NOTE: until the Extensions SDK has a public release, this workflow FAILS at
+# `npm ci` — the SDK packages it depends on (`vendor/*.tgz`) are a closed beta and
+# are gitignored, so a fresh checkout can't install them. This is expected for now;
+# development is local-only (`npm run ci`). Once Ableton publishes the SDK, switch the
+# `@ableton-extensions/*` deps from `file:` to the published version and CI goes green.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.16.0"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run package
