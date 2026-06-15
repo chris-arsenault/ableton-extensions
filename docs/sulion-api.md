@@ -105,6 +105,20 @@ Source in `../sulion`: `backend/src/api/repo_routes.rs` (`post_repo_ingest`,
 `IngestQuery`, `IngestResponse`), wired in `backend/src/api/mod.rs`, covered by
 `backend/tests/device_integration.rs`.
 
+## `GET /api/repos/:name/raw?path=<repo-relative-path>`
+
+Download a file. **Auth: `Authorization: Bearer <access_token>`** (device token). Used to
+pull a `.mid` back into Live.
+
+**Responses**
+- `200 OK` — the raw file bytes, `Content-Type: application/octet-stream`.
+- `400 Bad Request` — empty/invalid path or traversal.
+- `401 Unauthorized` — token missing/expired/revoked (client re-pairs).
+- `404 Not Found` — no file (or non-file) at `path`.
+
+Source in `../sulion`: `backend/src/api/repo_routes.rs` (`get_repo_raw`, `RawQuery`).
+The shared file-contract spec lives at `../sulion/docs/ableton-file-contract.md`.
+
 ## Note shape
 
 The canonical in-memory note (`SulionNote` / `SulionClipPayload`) lives in

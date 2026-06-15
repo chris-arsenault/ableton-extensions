@@ -41,6 +41,8 @@ export interface FakeHostOptions {
   language?: string;
   /** Session-view clip slots for `ClipSlotSelection` actions; `null` = an empty slot. */
   clipSlots?: Array<FakeClip | null>;
+  /** Parent track name per `clipSlots` entry (so `clipSlot.parent` resolves a Track). */
+  clipSlotTrackNames?: string[];
 }
 
 /** What the active progress dialog has shown, plus a promise that settles on close. */
@@ -57,6 +59,10 @@ export interface FakeExtensionHost {
   clipHandle: Handle;
   /** Handles for the configured `clipSlots`, in order (for `ClipSlotSelection`). */
   clipSlotHandles: Handle[];
+  /** MIDI clips created via `ClipSlot.createMidiClip` during the run, in order. */
+  createdClips: Array<{ handle: Handle; length: number }>;
+  /** Notes written to a clip via the `MidiClip.notes` setter (e.g. a created clip). */
+  notesSetOn(handle: Handle): NoteDescription[];
   /** Progress-dialog updates recorded across the run. */
   progress: RecordedProgress;
   /** Invoke a registered command directly, returning when its progress dialog closes. */
@@ -75,6 +81,8 @@ const SONG_ID = 2n;
 const CLIP_ID = 3n;
 const SLOT_BASE = 100n; // clip-slot handles: 100, 101, …
 const SLOT_CLIP_BASE = 200n; // the clip in slot i: 200 + i
+const TRACK_BASE = 300n; // the parent track of slot i: 300 + i
+const CREATED_BASE = 400n; // clips created via createMidiClip: 400, 401, …
 
 /**
  * Wrap a partial module impl so any method not implemented throws by name instead
@@ -94,7 +102,15 @@ function throwingProxy<T extends object>(impl: Partial<T>, label: string): T {
 }
 
 export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHost {
-  const { clip, tempo, storageDirectory, tempDirectory, language, clipSlots = [] } = options;
+  const {
+    clip,
+    tempo,
+    storageDirectory,
+    tempDirectory,
+    language,
+    clipSlots = [],
+    clipSlotTrackNames = [],
+  } = options;
 
   const appHandle: Handle = { id: ROOT_ID };
   const songHandle: Handle = { id: SONG_ID };
@@ -111,6 +127,9 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
   const clipById = new Map<bigint, FakeClip>([[CLIP_ID, clip]]);
   // Slot handle → its clip handle (or null when the slot is empty).
   const slotClipById = new Map<bigint, bigint | null>();
+  // Slot handle → its parent track handle (for `clipSlot.parent`).
+  const slotParentById = new Map<bigint, bigint>();
+  const trackNameById = new Map<bigint, string>();
   const clipSlotHandles: Handle[] = [];
 
   clipSlots.forEach((slotClip, i) => {
@@ -125,7 +144,18 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     } else {
       slotClipById.set(slotId, null);
     }
+    const trackName = clipSlotTrackNames[i];
+    if (trackName != null) {
+      const trackId = TRACK_BASE + BigInt(i);
+      classNameById.set(trackId, "MidiTrack");
+      trackNameById.set(trackId, trackName);
+      slotParentById.set(slotId, trackId);
+    }
   });
+
+  // Write-path recorders (populated by createMidiClip / the notes setter).
+  const createdClips: Array<{ handle: Handle; length: number }> = [];
+  const notesByHandle = new Map<bigint, NoteDescription[]>();
 
   const dataModel = throwingProxy<Api["dataModel"]>(
     {
@@ -139,6 +169,21 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
       clipslotGetClip: (handle) => {
         const clipId = slotClipById.get(handle.id);
         return clipId != null ? { id: clipId } : null;
+      },
+      getObjectCanonicalParent: (handle) => {
+        const parentId = slotParentById.get(handle.id);
+        return parentId != null ? { id: parentId } : null;
+      },
+      trackGetName: (handle) => trackNameById.get(handle.id) ?? "",
+      clipslotCreateMidiClip: (_handle, length, onResult) => {
+        const id = CREATED_BASE + BigInt(createdClips.length);
+        classNameById.set(id, "MidiClip");
+        const handle: Handle = { id };
+        createdClips.push({ handle, length });
+        onResult(handle);
+      },
+      midiclipSetNotes: (handle, notes) => {
+        notesByHandle.set(handle.id, notes);
       },
       withinTransaction: (fn) => fn(),
     },
@@ -234,6 +279,8 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     activation,
     clipHandle,
     clipSlotHandles,
+    createdClips,
+    notesSetOn: (handle: Handle) => notesByHandle.get(handle.id) ?? [],
     progress: { updates, done: closed },
     invokeCommand,
     invokeAction,

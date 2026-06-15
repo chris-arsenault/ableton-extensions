@@ -12,11 +12,10 @@ final one is completable on a dev host with **no Ableton Live install** and must
   `activate()` with no Live; error UX (cancel, actionable failure, 401 re-pair); and the
   **file transport** — `send-to-sulion` renders the clip to a `.mid` and uploads it via
   the generic file endpoint (`shared` `toMidiFile`/`fromMidiFile` + `uploadFile`).
-- **External (the `../sulion` repo, another agent):** device pairing and the generic
-  file-ingest endpoint are live. A device-authed raw file **download** (needed to pull a
-  clip back into Live) does not exist yet; the spec is in
-  `../sulion/docs/ableton-file-contract.md` for that agent to build.
-- **Not built yet:** the three new extensions, lint/CI, and the one-time Live
+- **External (the `../sulion` repo, another agent):** device pairing, the generic
+  file-ingest endpoint, and the device-authed raw **download** (`GET …/raw?path=`) are all
+  live. Shared file contract: `../sulion/docs/ableton-file-contract.md`.
+- **Not built yet:** the arrangement-selection extension, lint/CI, and the one-time Live
   verification.
 
 ## Two standing constraints
@@ -64,10 +63,11 @@ generic file upload.
   `captureAndSendAll` renders + uploads each selected MIDI clip (empties skipped); the
   single-clip `MidiClip` action stays. Fake host gained multi-slot + `ClipSlotSelection`
   support. (This replaces the dropped, speculative "sync tempo / markers" item.)
-- [ ] **Pull a Sulion clip back into Live** — right-click a `ClipSlot`, download
-  `clips/<track-name>.mid` via `GET /api/repos/:name/raw?path=` (Sulion has shipped it),
-  `fromMidiFile`, then `createMidiClip` + set `notes`. Needs a download client in `shared`
-  and fake-host write support (`createMidiClip` / `notes` setter / slot→track parent).
+- [x] **Pull a Sulion clip back into Live** — `packages/pull-from-sulion`: right-click a
+  `ClipSlot` → download `clips/<track-name>.mid` via `GET /api/repos/:name/raw?path=`,
+  `fromMidiFile`, then `createMidiClip` + set `notes`. Added `shared` `downloadFile` +
+  `toSdkNotes` (inverse adapter) + lifted the pairing flow into `shared/session.ts`;
+  fake host gained the write path (`createMidiClip` / `notes` setter / slot→track parent).
 - [ ] **Send arrangement selection (notes-only)** — `MidiTrack.ArrangementSelection`
   scope: encode the in-range arrangement notes to a `.mid` and upload. Device-parameter
   **automation is not capturable** — the beta SDK exposes only `DeviceParameter.getValue`/

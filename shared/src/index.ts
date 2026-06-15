@@ -5,4 +5,5 @@ export * from "./config.js";
 export * from "./notes.js";
 export * from "./midi.js";
 export * from "./auth.js";
+export * from "./session.js";
 export * from "./sulion-client.js";

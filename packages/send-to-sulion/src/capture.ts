@@ -5,26 +5,18 @@
  */
 
 import {
-  loadCredentials,
-  pollForToken,
+  ensureCredentials,
   resolveConfig,
-  saveCredentials,
-  startPairing,
+  runPairing,
   SulionAuthError,
   toMidiFile,
   uploadFile,
+  type ProgressHost,
   type SulionClipPayload,
   type SulionConfig,
-  type StoredCredentials,
 } from "@sulion-ableton/shared";
 
-/** The bits of UI/host behaviour capture needs, injected so tests can fake them. */
-export interface ProgressHost {
-  setStatus(message: string): void;
-  isCancelled(): boolean;
-  /** Open a URL in the user's browser (for the pairing approval step). */
-  openUrl(url: string): void | Promise<void>;
-}
+export type { ProgressHost } from "@sulion-ableton/shared";
 
 export interface CaptureDeps {
   config?: SulionConfig;
@@ -128,25 +120,4 @@ export async function captureAndSendAll(
 function clipPath(name: string | undefined): string {
   const safe = (name ?? "clip").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "");
   return `clips/${safe || "clip"}.mid`;
-}
-
-async function ensureCredentials(
-  config: SulionConfig,
-  host: ProgressHost,
-): Promise<StoredCredentials> {
-  const existing = await loadCredentials(config);
-  if (existing) return existing;
-  return runPairing(config, host);
-}
-
-async function runPairing(
-  config: SulionConfig,
-  host: ProgressHost,
-): Promise<StoredCredentials> {
-  const start = await startPairing(config);
-  await host.openUrl(start.verification_uri_complete ?? start.verification_uri);
-  host.setStatus(`Approve in browser (code ${start.user_code})…`);
-  const creds = await pollForToken(config, start, undefined, () => !host.isCancelled());
-  await saveCredentials(config, creds);
-  return creds;
 }

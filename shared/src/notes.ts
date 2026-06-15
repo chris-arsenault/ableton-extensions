@@ -75,6 +75,37 @@ export function fromSdkNotes(raw: RawSdkNote[]): SulionNote[] {
   return raw.map(fromSdkNote);
 }
 
+/**
+ * A note ready to hand to the SDK's `MidiClip.notes` setter (the inverse of
+ * {@link fromSdkNote}). Structurally a `NoteDescription` with the fields we set
+ * always present, so it assigns cleanly to the SDK type at the edge without
+ * importing it here.
+ */
+export interface SdkNoteWrite {
+  pitch: number;
+  startTime: number;
+  duration: number;
+  velocity: number;
+  muted: boolean;
+  probability?: number;
+}
+
+/** Adapt one canonical note back to the SDK note shape for writing into Live. */
+export function toSdkNote(note: SulionNote): SdkNoteWrite {
+  return {
+    pitch: note.pitch,
+    startTime: note.start,
+    duration: note.duration,
+    velocity: note.velocity,
+    muted: note.muted ?? false,
+    ...(note.probability != null ? { probability: note.probability } : {}),
+  };
+}
+
+export function toSdkNotes(notes: SulionNote[]): SdkNoteWrite[] {
+  return notes.map(toSdkNote);
+}
+
 function req(value: number | undefined, field: string): number {
   if (value == null || Number.isNaN(value)) {
     throw new Error(`MIDI note missing required field "${field}"`);
