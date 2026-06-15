@@ -16,7 +16,7 @@ This also fits the broader Sulion model nicely — token minting is a sibling of
 ```
 Extension run                              Sulion backend            Browser (you, logged in)
 ─────────────                              ──────────────            ────────────────────────
-loadCredentials() ── token cached? ──► yes ─► use it ─► POST /api/midi/ingest
+loadCredentials() ── token cached? ──► yes ─► use it ─► POST /api/repos/:name/ingest
         │ no
         ▼
 POST /api/devices/pair  ──────────────►  mint device_code+user_code
@@ -29,9 +29,9 @@ setStatus("Approve in browser (code WXYZ-1234)…")                    user clic
 POST /api/devices/pair/token ─────────►  428 pending… then 200 { access_token }
         │  ◄──────────────────────────
         ▼
-saveCredentials()  →  ~/.sulion/credentials.json (mode 0600)
+saveCredentials()  →  credentials.json (mode 0600)
         ▼
-POST /api/midi/ingest  (Bearer token)
+POST /api/repos/:name/ingest  (Bearer token, .mid bytes)
 ```
 
 On a later run the cached token is used directly. On `401`, `capture.ts` drops the

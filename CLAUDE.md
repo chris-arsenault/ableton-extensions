@@ -12,14 +12,15 @@ Read before editing:
 
 ## SDK is pinned — read this first
 
-The Extensions SDK launched as a **Live 12.4.5 public beta** (June 2 2026). Its full API reference ships inside the beta bundle, **not** on the public web. The bundle is now **vendored in this repo** (`vendor/@ableton-extensions/{sdk,cli}`, extracted from `extensions-sdk-1.0.0-beta.0.zip`) and `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 — so the earlier "every name is a placeholder" caveat is resolved. The verified API lives in [docs/extensions-sdk.md](docs/extensions-sdk.md); the highlights:
+The Extensions SDK launched as a **Live 12.4.5 public beta** (June 2 2026). Its full API reference ships inside the beta bundle, **not** on the public web. The SDK is **vendored locally** (`vendor/*.tgz`, gitignored — closed beta, not redistributable; see [vendor/README.md](vendor/README.md)) and `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 — so the earlier "every name is a placeholder" caveat is resolved. The verified API lives in [docs/extensions-sdk.md](docs/extensions-sdk.md); the highlights:
 
 - **Import** `@ableton-extensions/sdk`; **entry** is `export function activate(activation)` → `initialize(activation, "1.0.0")`.
 - **Register:** `commands.registerCommand(id, cb)` + `ui.registerContextMenuAction(scope, title, commandId)`; the command callback receives a `Handle`, resolved via `context.getObjectFromHandle(handle, MidiClip)`.
 - **Notes:** `MidiClip.notes` → `NoteDescription[]` (`pitch`/`startTime`/`duration`/optional `velocity`/`muted`/…). **UI:** `ui.withinProgressDialog(text, opts, cb)`.
 - **Filesystem is not sandboxed:** full `node:fs` plus a managed `environment.storageDirectory` for credentials. The browser-open step uses `node:child_process` (no SDK primitive for it).
+- **Transport:** Sulion takes **files**. The extension renders a clip to a `.mid` and uploads it via the generic file endpoint ([docs/sulion-api.md](docs/sulion-api.md)). `send-to-sulion` still uses the old notes-JSON path and is migrating — see [docs/backlog.md](docs/backlog.md) Phase 1.
 
-**Live verification is deferred to one final pass.** Transferring a build to the Ableton machine is costly, so all remaining features are built and tested *off-Live* — a fake Extensions SDK host (backlog M3) drives the real `activate()` → capture → ingest flow against a local Sulion — and the extension is run inside Live 12.4.5 exactly once, when the feature set is complete (backlog M8). Every milestone but the last must stay green (`typecheck` + `test` + `build`) without Live. The bundle exports `activate`.
+**Live verification is deferred to one final pass.** Transferring a build to the Ableton machine is costly, so all remaining features are built and tested *off-Live* — the fake Extension Host (`@sulion-ableton/test-host`) drives the real `activate()` → capture → upload flow without Live — and the extensions run inside Live 12.4.5 exactly once, when the feature set is complete (backlog Phase 5). Every phase but the last must stay green (`typecheck` + `test` + `build`) without Live. The bundle exports `activate`.
 
 ## Architecture rule — keep the SDK at the edge
 
@@ -28,7 +29,7 @@ Business logic must stay SDK-independent and unit-tested:
 - `shared/` and `packages/*/src/capture.ts` — **real, tested, no SDK imports.** They operate on the canonical `SulionNote`/`SulionClipPayload` types.
 - `packages/*/src/index.ts` — the **only** file that touches the SDK. Keep it thin: translate SDK objects → canonical types, then delegate to `capture.ts`.
 
-This boundary is what lets the fake SDK host (backlog M3) drive the whole flow in tests, so features can be built and verified without Live until the final pass (M8).
+This boundary is what lets the fake SDK host (`@sulion-ableton/test-host`) drive the whole flow in tests, so features can be built and verified without Live until the final pass (backlog Phase 5).
 
 ## Working rules
 

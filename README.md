@@ -2,11 +2,11 @@
 
 Personal [Ableton Live Extensions](https://ableton.github.io/extensions-sdk/) — small tools that run inside Live (Extensions SDK) and bridge it into the [Sulion](../sulion) family of services.
 
-First and reference extension: **send-to-sulion** — right-click a clip → send its MIDI notes to Sulion over an authenticated HTTP call.
+First and reference extension: **send-to-sulion** — right-click a MIDI clip → render it to a `.mid` file and upload it to Sulion over an authenticated HTTP call.
 
 ## Status
 
-The shared library (config, note serialization, device-pairing auth, Sulion HTTP client) is real and unit-tested, and the **SDK is pinned**: `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 (vendored from the beta bundle under `vendor/`), `typecheck` + `test` + `build` are green, and the build emits a single CJS `dist/index.js` exporting `activate`. The remaining feature work is built and tested off-Live; verification inside Live 12.4.5 is deliberately deferred to a single final pass (see [docs/backlog.md](docs/backlog.md) — strategy + M8). See [docs/extensions-sdk.md](docs/extensions-sdk.md) for the verified API.
+The shared library (config, note serialization, device-pairing auth, Sulion client) is real and unit-tested, and the **SDK is pinned**: `send-to-sulion` is wired against the real `@ableton-extensions/sdk` 1.0.0-beta.0 (vendored locally under `vendor/`), with a fake Extension Host test harness and error UX in place; `typecheck` + `test` + `build` are green. The send transport is mid-migration from the old notes-JSON endpoint to a `.mid` file upload (Sulion now takes files). For exactly where things stand and what's next, read [docs/backlog.md](docs/backlog.md); for the verified SDK API, [docs/extensions-sdk.md](docs/extensions-sdk.md). Verification inside Live 12.4.5 is deferred to a single final pass.
 
 ## Requirements
 
@@ -50,6 +50,7 @@ Config (set in your shell, or via `with-cred` in the managed Sulion PTY):
 
 ## The Sulion boundary
 
-This repo only talks to Sulion through two HTTP endpoints. The contract lives in
-[docs/sulion-api.md](docs/sulion-api.md); the matching backend handlers live in the
-**sulion** repo (not here). Keep the contract doc authoritative for both sides.
+This repo talks to Sulion only over device pairing and a file-upload endpoint. The
+contract lives in [docs/sulion-api.md](docs/sulion-api.md); the matching backend handlers
+live in the **sulion** repo (not here). Keep the contract doc authoritative for both
+sides.
