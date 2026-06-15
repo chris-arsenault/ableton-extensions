@@ -32,12 +32,15 @@ export interface FakeClip {
 }
 
 export interface FakeHostOptions {
+  /** The single MIDI clip resolved by `invokeAction("MidiClip")`. */
   clip: FakeClip;
   tempo: number;
   /** Per-extension persistent dir the SDK exposes as `environment.storageDirectory`. */
   storageDirectory: string;
   tempDirectory?: string;
   language?: string;
+  /** Session-view clip slots for `ClipSlotSelection` actions; `null` = an empty slot. */
+  clipSlots?: Array<FakeClip | null>;
 }
 
 /** What the active progress dialog has shown, plus a promise that settles on close. */
@@ -52,12 +55,16 @@ export interface FakeExtensionHost {
   activation: ActivationContext;
   /** Handle for the fake MIDI clip, as a context-menu command would receive it. */
   clipHandle: Handle;
+  /** Handles for the configured `clipSlots`, in order (for `ClipSlotSelection`). */
+  clipSlotHandles: Handle[];
   /** Progress-dialog updates recorded across the run. */
   progress: RecordedProgress;
   /** Invoke a registered command directly, returning when its progress dialog closes. */
   invokeCommand(commandId: string, ...args: unknown[]): Promise<void>;
   /** Trigger the context-menu action registered for `scope`, passing the clip handle. */
   invokeAction(scope: string): Promise<void>;
+  /** Trigger the action registered for `scope` with an explicit first argument. */
+  invokeContextMenu(scope: string, arg: unknown): Promise<void>;
   /** Simulate the user cancelling the dialog (aborts the SDK's AbortSignal). */
   cancel(): void;
 }
@@ -66,6 +73,8 @@ export interface FakeExtensionHost {
 const ROOT_ID = 1n; // the Application root
 const SONG_ID = 2n;
 const CLIP_ID = 3n;
+const SLOT_BASE = 100n; // clip-slot handles: 100, 101, …
+const SLOT_CLIP_BASE = 200n; // the clip in slot i: 200 + i
 
 /**
  * Wrap a partial module impl so any method not implemented throws by name instead
@@ -85,19 +94,38 @@ function throwingProxy<T extends object>(impl: Partial<T>, label: string): T {
 }
 
 export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHost {
-  const { clip, tempo, storageDirectory, tempDirectory, language } = options;
+  const { clip, tempo, storageDirectory, tempDirectory, language, clipSlots = [] } = options;
 
   const appHandle: Handle = { id: ROOT_ID };
   const songHandle: Handle = { id: SONG_ID };
   const clipHandle: Handle = { id: CLIP_ID };
 
   // Exact leaf class per handle. Exact-match (no parent classes) guarantees the
-  // SDK registry resolves the clip as a MidiClip, not its Clip base.
+  // SDK registry resolves a clip as a MidiClip, not its Clip base.
   const classNameById = new Map<bigint, string>([
     [ROOT_ID, "Application"],
     [SONG_ID, "Song"],
     [CLIP_ID, "MidiClip"],
   ]);
+  // Per-handle clip data, so reads work for the single clip and any slot clips.
+  const clipById = new Map<bigint, FakeClip>([[CLIP_ID, clip]]);
+  // Slot handle → its clip handle (or null when the slot is empty).
+  const slotClipById = new Map<bigint, bigint | null>();
+  const clipSlotHandles: Handle[] = [];
+
+  clipSlots.forEach((slotClip, i) => {
+    const slotId = SLOT_BASE + BigInt(i);
+    classNameById.set(slotId, "ClipSlot");
+    clipSlotHandles.push({ id: slotId });
+    if (slotClip) {
+      const clipId = SLOT_CLIP_BASE + BigInt(i);
+      classNameById.set(clipId, "MidiClip");
+      clipById.set(clipId, slotClip);
+      slotClipById.set(slotId, clipId);
+    } else {
+      slotClipById.set(slotId, null);
+    }
+  });
 
   const dataModel = throwingProxy<Api["dataModel"]>(
     {
@@ -106,8 +134,12 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
         classNameById.get(handle.id) === className,
       rootGetSong: () => songHandle,
       songGetTempo: () => tempo,
-      clipGetName: () => clip.name,
-      midiclipGetNotes: () => clip.notes,
+      clipGetName: (handle) => clipById.get(handle.id)?.name ?? "",
+      midiclipGetNotes: (handle) => clipById.get(handle.id)?.notes ?? [],
+      clipslotGetClip: (handle) => {
+        const clipId = slotClipById.get(handle.id);
+        return clipId != null ? { id: clipId } : null;
+      },
       withinTransaction: (fn) => fn(),
     },
     "dataModel",
@@ -185,11 +217,13 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     return closed;
   };
 
-  const invokeAction = (scope: string): Promise<void> => {
+  const invokeContextMenu = (scope: string, arg: unknown): Promise<void> => {
     const commandId = commandIdByScope.get(scope);
     if (!commandId) throw new Error(`no context-menu action registered for scope: ${scope}`);
-    return invokeCommand(commandId, clipHandle);
+    return invokeCommand(commandId, arg);
   };
+
+  const invokeAction = (scope: string): Promise<void> => invokeContextMenu(scope, clipHandle);
 
   const cancel = (): void => {
     if (!onCancelled) throw new Error("no progress dialog open to cancel");
@@ -199,9 +233,11 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
   return {
     activation,
     clipHandle,
+    clipSlotHandles,
     progress: { updates, done: closed },
     invokeCommand,
     invokeAction,
+    invokeContextMenu,
     cancel,
   };
 }

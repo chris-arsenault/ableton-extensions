@@ -75,6 +75,55 @@ export async function captureAndSend(
   }
 }
 
+/**
+ * Send several clips in one go (for a ClipSlotSelection). Resolves credentials once,
+ * uploads each clip's `.mid`, and reports `k/N` progress. Clips with no notes are
+ * skipped. Cancel + actionable-failure handling mirrors {@link captureAndSend}.
+ */
+export async function captureAndSendAll(
+  payloads: SulionClipPayload[],
+  host: ProgressHost,
+  deps: CaptureDeps = {},
+): Promise<void> {
+  const config = deps.config ?? resolveConfig();
+
+  const clips = payloads.filter((p) => p.notes.length > 0);
+  if (clips.length === 0) {
+    host.setStatus("No clips with notes");
+    return;
+  }
+
+  try {
+    let creds = await ensureCredentials(config, host);
+
+    for (let i = 0; i < clips.length; i++) {
+      const payload = clips[i]!;
+      const bytes = toMidiFile(payload);
+      const path = clipPath(payload.name);
+      host.setStatus(`Sending clip ${i + 1}/${clips.length}…`);
+      try {
+        await uploadFile(config, creds, path, bytes);
+      } catch (err) {
+        if (err instanceof SulionAuthError) {
+          creds = await runPairing(config, host);
+          await uploadFile(config, creds, path, bytes);
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    host.setStatus(`Sent ${clips.length} clips to Sulion ✓`);
+  } catch (err) {
+    if (host.isCancelled()) {
+      host.setStatus("Cancelled");
+      return;
+    }
+    host.setStatus("Couldn't reach Sulion — check it's running");
+    throw err;
+  }
+}
+
 /** Repo-relative destination for a clip's `.mid`, with a filesystem-safe name. */
 function clipPath(name: string | undefined): string {
   const safe = (name ?? "clip").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "");

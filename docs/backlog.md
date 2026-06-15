@@ -60,19 +60,18 @@ generic file upload.
 
 ## Phase 2 — More extensions (file model, harness-tested)
 
-Each lands as `packages/<name>/` with a thin SDK-facing `index.ts`, host-agnostic logic,
-fake-host coverage, and a green `build`.
-
-- [ ] **Pull a Sulion clip back into Live** — needs the specced device-authed download, a
-  `fromMidiFile` decode, and fake-host write support (`createMidiClip` / set `notes`).
-  **[decision]** how the source clip is chosen (no text-input UI).
-- [ ] **Sync tempo / markers** — encode `song.tempo` + cue points as tempo/marker meta in
-  a `.mid`; pull reads them back via `createCuePoint`.
-  **[decision]** trigger scope (no `Song` scope exists) and push-only vs push+pull.
-- [ ] **Send arrangement selection** — `MidiTrack.ArrangementSelection` scope: encode the
-  in-range arrangement notes to a `.mid` and upload.
-  **[decision]** device-parameter automation is lossy as MIDI — notes-only first,
-  automation a later item.
+- [x] **Export 1-N clips to Sulion** — a `ClipSlotSelection` action on `send-to-sulion`;
+  `captureAndSendAll` renders + uploads each selected MIDI clip (empties skipped); the
+  single-clip `MidiClip` action stays. Fake host gained multi-slot + `ClipSlotSelection`
+  support. (This replaces the dropped, speculative "sync tempo / markers" item.)
+- [ ] **Pull a Sulion clip back into Live** — right-click a `ClipSlot`, download
+  `clips/<track-name>.mid` via `GET /api/repos/:name/raw?path=` (Sulion has shipped it),
+  `fromMidiFile`, then `createMidiClip` + set `notes`. Needs a download client in `shared`
+  and fake-host write support (`createMidiClip` / `notes` setter / slot→track parent).
+- [ ] **Send arrangement selection (notes-only)** — `MidiTrack.ArrangementSelection`
+  scope: encode the in-range arrangement notes to a `.mid` and upload. Device-parameter
+  **automation is not capturable** — the beta SDK exposes only `DeviceParameter.getValue`/
+  `setValue`, no envelopes — so this is notes-only until the SDK adds an automation API.
 
 ## Phase 3 — DX + CI
 

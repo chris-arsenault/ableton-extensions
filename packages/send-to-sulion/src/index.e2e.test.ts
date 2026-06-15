@@ -141,4 +141,31 @@ describe("send-to-sulion activate() end to end", () => {
       { pitch: 52, start: 4, duration: 1, velocity: 100 },
     ]);
   });
+
+  it("exports every MIDI clip in a slot selection (1-N), skipping empties", async () => {
+    const host = makeFakeExtensionHost({
+      clip: { name: "unused", notes: [] },
+      tempo: 120,
+      storageDirectory: storageDir,
+      clipSlots: [
+        { name: "Bass", notes: [{ pitch: 36, startTime: 0, duration: 0.5, velocity: 100 }] },
+        null, // empty slot → skipped
+        { name: "Lead", notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 90 }] },
+      ],
+    });
+    activate(host.activation);
+    await host.invokeContextMenu("ClipSlotSelection", {
+      selected_clip_slots: host.clipSlotHandles,
+    });
+
+    expect(uploads).toHaveLength(2);
+    expect(uploads.map((u) => new URL(u.url).searchParams.get("path"))).toEqual([
+      "clips/Bass.mid",
+      "clips/Lead.mid",
+    ]);
+    expect(fromMidiFile(uploads[0]!.bytes).notes).toEqual([
+      { pitch: 36, start: 0, duration: 0.5, velocity: 100 },
+    ]);
+    expect(host.progress.updates.at(-1)?.text).toBe("Sent 2 clips to Sulion ✓");
+  });
 });

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureAndSend, type ProgressHost } from "./capture.js";
+import { captureAndSend, captureAndSendAll, type ProgressHost } from "./capture.js";
 import type { SulionConfig } from "@sulion-ableton/shared";
 
 // Capture-level harness: a hand-built ProgressHost + a stubbed global `fetch`.
@@ -138,5 +138,51 @@ describe("captureAndSend", () => {
 
     expect(ingestCalls).toBe(2);
     expect(h.statuses.at(-1)).toBe(`Sent ${ONE_NOTE.length} notes to Sulion ✓`);
+  });
+});
+
+describe("captureAndSendAll", () => {
+  it("uploads one .mid per non-empty clip and reports the total", async () => {
+    await writeFile(
+      credentialsPath,
+      JSON.stringify({ accessToken: "tok", tokenType: "Bearer" }),
+      { mode: 0o600 },
+    );
+    const h = host();
+    let uploads = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) => {
+        if (String(url).includes("/ingest")) {
+          uploads += 1;
+          return json({ path: "clips/x.mid", bytes: 64 });
+        }
+        throw new Error(`unexpected fetch: ${url}`);
+      }),
+    );
+
+    await captureAndSendAll(
+      [
+        { name: "A", notes: ONE_NOTE },
+        { name: "Empty", notes: [] }, // skipped
+        { name: "B", notes: ONE_NOTE },
+      ],
+      h,
+      { config: config() },
+    );
+
+    expect(uploads).toBe(2);
+    expect(h.statuses.at(-1)).toBe("Sent 2 clips to Sulion ✓");
+  });
+
+  it("reports when nothing in the selection has notes, without uploading", async () => {
+    const h = host();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await captureAndSendAll([{ name: "Empty", notes: [] }], h, { config: config() });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(h.statuses).toContain("No clips with notes");
   });
 });
