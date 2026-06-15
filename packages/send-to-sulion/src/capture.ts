@@ -5,13 +5,14 @@
  */
 
 import {
-  ingestClip,
   loadCredentials,
   pollForToken,
   resolveConfig,
   saveCredentials,
   startPairing,
   SulionAuthError,
+  toMidiFile,
+  uploadFile,
   type SulionClipPayload,
   type SulionConfig,
   type StoredCredentials,
@@ -44,16 +45,20 @@ export async function captureAndSend(
   try {
     let creds = await ensureCredentials(config, host);
 
+    const bytes = toMidiFile(payload);
+    const path = clipPath(payload.name);
+    const done = `Sent ${payload.notes.length} notes to Sulion ✓`;
+
     host.setStatus(`Sending ${payload.notes.length} notes…`);
     try {
-      const res = await ingestClip(config, creds, payload);
-      host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+      await uploadFile(config, creds, path, bytes);
+      host.setStatus(done);
     } catch (err) {
       if (err instanceof SulionAuthError) {
         // Cached token went stale between load and use — re-pair once, then retry.
         creds = await runPairing(config, host);
-        const res = await ingestClip(config, creds, payload);
-        host.setStatus(`Sent ${res.note_count} notes to Sulion ✓`);
+        await uploadFile(config, creds, path, bytes);
+        host.setStatus(done);
         return;
       }
       throw err;
@@ -68,6 +73,12 @@ export async function captureAndSend(
     host.setStatus("Couldn't reach Sulion — check it's running");
     throw err;
   }
+}
+
+/** Repo-relative destination for a clip's `.mid`, with a filesystem-safe name. */
+function clipPath(name: string | undefined): string {
+  const safe = (name ?? "clip").replace(/[^A-Za-z0-9._-]+/g, "_").replace(/^_+|_+$/g, "");
+  return `clips/${safe || "clip"}.mid`;
 }
 
 async function ensureCredentials(

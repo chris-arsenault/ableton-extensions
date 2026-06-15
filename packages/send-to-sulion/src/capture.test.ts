@@ -29,7 +29,7 @@ afterEach(async () => {
 });
 
 function config(): SulionConfig {
-  return { baseUrl: BASE_URL, credentialsPath };
+  return { baseUrl: BASE_URL, credentialsPath, repo: "ableton" };
 }
 
 function host(opts: { cancelled?: boolean } = {}): ProgressHost & { statuses: string[] } {
@@ -94,7 +94,7 @@ describe("captureAndSend", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string | URL) => {
-        if (String(url).endsWith("/api/midi/ingest")) throw new TypeError("fetch failed");
+        if (String(url).includes("/ingest")) throw new TypeError("fetch failed");
         throw new Error(`unexpected fetch: ${url}`);
       }),
     );
@@ -119,13 +119,12 @@ describe("captureAndSend", () => {
     let ingestCalls = 0;
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string | URL, init?: RequestInit) => {
+      vi.fn(async (url: string | URL) => {
         const u = String(url);
-        if (u.endsWith("/api/midi/ingest")) {
+        if (u.includes("/ingest")) {
           ingestCalls += 1;
           if (ingestCalls === 1) return json({ error: "unauthorized" }, 401);
-          const body = JSON.parse(String(init?.body));
-          return json({ ingest_id: "i1", note_count: body.notes.length });
+          return json({ path: "clips/X.mid", bytes: 64 });
         }
         if (u.endsWith("/api/devices/pair")) return json(PAIR_START);
         if (u.endsWith("/api/devices/pair/token")) {

@@ -3,13 +3,13 @@
  * green with no Sulion running; it only executes when BOTH env vars are set:
  *
  *   SULION_BASE_URL=http://localhost:8080 \
+ *   SULION_REPO=<repo> \
  *   SULION_DEVICE_TOKEN=tok_… \
  *   npx vitest run packages/send-to-sulion/src/ingest.integration.test.ts
  *
- * It drives the real `activate()` against the running Sulion and asserts the
- * success status — i.e. Sulion accepted the clip and counted the notes. There is
- * no read-back endpoint in the contract, so this is a count-level check, not a
- * content read-back (deliberately kept lightweight).
+ * It drives the real `activate()` against the running Sulion, which renders the clip
+ * to a `.mid` and uploads it via the file endpoint, and asserts the success status —
+ * i.e. Sulion accepted the upload. Deliberately lightweight (no read-back).
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";

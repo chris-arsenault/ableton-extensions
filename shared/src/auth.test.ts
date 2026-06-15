@@ -10,6 +10,7 @@ import type { SulionConfig } from "./config.js";
 const config: SulionConfig = {
   baseUrl: "https://sulion.test",
   credentialsPath: "/tmp/does-not-matter/credentials.json",
+  repo: "ableton",
 };
 
 function makeDeps(overrides: Partial<AuthDeps> = {}): AuthDeps {

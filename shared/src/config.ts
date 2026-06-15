@@ -13,9 +13,12 @@ export interface SulionConfig {
   baseUrl: string;
   /** Absolute path to the JSON file where the device token is cached. */
   credentialsPath: string;
+  /** Sulion repo that uploaded clip files land in. Override with SULION_REPO. */
+  repo: string;
 }
 
 const DEFAULT_BASE_URL = "http://localhost:8080";
+const DEFAULT_REPO = "ableton";
 
 /** Host-supplied defaults, e.g. the SDK's per-extension `environment.storageDirectory`. */
 export interface ConfigDefaults {
@@ -43,5 +46,6 @@ export function resolveConfig(
   const baseUrl = (env.SULION_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
   const credentialsPath =
     env.SULION_CREDENTIALS_PATH ?? join(configDir(env, defaults), "credentials.json");
-  return { baseUrl, credentialsPath };
+  const repo = env.SULION_REPO ?? DEFAULT_REPO;
+  return { baseUrl, credentialsPath, repo };
 }

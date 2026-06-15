@@ -1,34 +1,41 @@
 import type { SulionConfig } from "./config.js";
 import type { StoredCredentials } from "./auth.js";
-import type { SulionClipPayload } from "./notes.js";
 
-export interface IngestResponse {
-  ingest_id: string;
-  note_count: number;
+export interface UploadResponse {
+  /** Normalized repo-relative path the file was written to. */
+  path: string;
+  /** Number of bytes written. */
+  bytes: number;
 }
 
 export class SulionAuthError extends Error {}
 
 /**
- * POST a captured clip to Sulion. Throws {@link SulionAuthError} on 401 so the
- * caller can drop the cached token and re-run the pairing flow.
+ * Upload a file to Sulion's generic per-repo file endpoint (see docs/sulion-api.md).
+ * `path` is repo-relative (e.g. "clips/verse.mid"); the repo comes from {@link SulionConfig.repo}.
+ * Throws {@link SulionAuthError} on 401 so the caller can drop the cached token and re-pair.
  */
-export async function ingestClip(
+export async function uploadFile(
   config: SulionConfig,
   creds: StoredCredentials,
-  payload: SulionClipPayload,
+  path: string,
+  bytes: Uint8Array,
   fetchImpl: typeof fetch = fetch,
-): Promise<IngestResponse> {
-  const res = await fetchImpl(`${config.baseUrl}/api/midi/ingest`, {
+): Promise<UploadResponse> {
+  const url =
+    `${config.baseUrl}/api/repos/${encodeURIComponent(config.repo)}/ingest` +
+    `?path=${encodeURIComponent(path)}`;
+
+  const res = await fetchImpl(url, {
     method: "POST",
     headers: {
-      "content-type": "application/json",
+      "content-type": "application/octet-stream",
       authorization: `${creds.tokenType} ${creds.accessToken}`,
     },
-    body: JSON.stringify({ source: "ableton", ...payload }),
+    body: bytes,
   });
 
   if (res.status === 401) throw new SulionAuthError("token rejected (401)");
-  if (!res.ok) throw new Error(`ingest failed: HTTP ${res.status}`);
-  return (await res.json()) as IngestResponse;
+  if (!res.ok) throw new Error(`upload failed: HTTP ${res.status}`);
+  return (await res.json()) as UploadResponse;
 }

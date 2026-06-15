@@ -22,9 +22,9 @@ afterEach(async () => {
 
 describe("runHarness", () => {
   it("drives the flow with an injected fetch and returns the status lines", async () => {
-    const fetchImpl = (async (url: string | URL, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({ ingest_id: "i1", note_count: body.notes.length }), {
+    const fetchImpl = (async (_url: string | URL, init?: RequestInit) => {
+      const bytes = init?.body as Uint8Array;
+      return new Response(JSON.stringify({ path: "clips/harness-clip.mid", bytes: bytes.length }), {
         status: 200,
         headers: { "content-type": "application/json" },
       });

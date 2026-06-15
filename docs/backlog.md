@@ -9,18 +9,15 @@ final one is completable on a dev host with **no Ableton Live install** and must
 - **Working off-Live (green):** Node 24 toolchain; the real Extensions SDK wired in
   (`@ableton-extensions/sdk`, vendored locally per [vendor/README.md](../vendor/README.md));
   a fake Extension Host harness (`@sulion-ableton/test-host`) that drives a real
-  `activate()` with no Live; and error UX (cancel, actionable failure, 401 re-pair) on
-  the `send-to-sulion` extension.
-- **Needs rework — the transport is obsolete:** `send-to-sulion` uploads notes-as-JSON
-  to a Sulion endpoint that no longer exists. Sulion now takes **files**, so the
-  extension must render the clip to a `.mid` and upload it via the generic file
-  endpoint. The tests pass only because they stub `fetch`; against a real Sulion the
-  send fails today. This is Phase 1.
+  `activate()` with no Live; error UX (cancel, actionable failure, 401 re-pair); and the
+  **file transport** — `send-to-sulion` renders the clip to a `.mid` and uploads it via
+  the generic file endpoint (`shared` `toMidiFile`/`fromMidiFile` + `uploadFile`).
 - **External (the `../sulion` repo, another agent):** device pairing and the generic
   file-ingest endpoint are live. A device-authed raw file **download** (needed to pull a
-  clip back into Live) does not exist yet and must be specced for that agent to build.
-- **Not built yet:** the file-transport migration, the three new extensions, lint/CI,
-  and the one-time Live verification.
+  clip back into Live) does not exist yet; the spec is in
+  `../sulion/docs/ableton-file-contract.md` for that agent to build.
+- **Not built yet:** the three new extensions, lint/CI, and the one-time Live
+  verification.
 
 ## Two standing constraints
 
@@ -43,22 +40,23 @@ Sulion agent rather than editing Sulion here.
   through it; `npm run dev:harness`.
 - Error UX: clean cancel, actionable failure status, 401 re-pair retry.
 
-## Phase 1 — Migrate the transport to MIDI files (next)
+## Phase 1 — Migrate the transport to MIDI files — DONE
 
-Sulion takes files now, so move the shared layer and `send-to-sulion` off the dead
-notes-JSON endpoint.
+Moved the shared layer and `send-to-sulion` off the dead notes-JSON endpoint onto the
+generic file upload.
 
-- [ ] Write the file-API spec for the Sulion agent (place the spec file in `../sulion`);
-  update [sulion-api.md](sulion-api.md) to the file contract.
-  **[decision]** upload repo + path convention (default: `SULION_REPO` env +
-  `clips/<name>.mid`) and the proposed device-authed download endpoint shape.
-- [ ] Add `@tonejs/midi`; add `toMidiFile` / `fromMidiFile` to `shared` (canonical notes
-  ↔ `.mid` bytes). A `.mid` carries pitch/start/duration/velocity + tempo + markers;
-  `muted`/`probability` are dropped.
-- [ ] Replace `ingestClip` with `uploadFile` (`POST /api/repos/:name/ingest?path=`, raw
-  bytes); add `repo` to config.
-- [ ] Migrate `send-to-sulion` `capture.ts` to encode + upload; rewrite its transport
-  tests to assert the uploaded `.mid` decodes to the expected notes.
+- [x] Wrote the file-API spec for the Sulion agent (`../sulion/docs/ableton-file-contract.md`);
+  updated [sulion-api.md](sulion-api.md) to the file contract. Conventions: `SULION_REPO`
+  env (default `ableton`) + `clips/<name>.mid`; proposed `GET /api/repos/:name/raw?path=`
+  for the Phase 2 download.
+- [x] Added `@tonejs/midi`; `toMidiFile` / `fromMidiFile` in `shared` (canonical notes ↔
+  `.mid` bytes). A `.mid` carries pitch/start/duration/velocity + tempo; `muted`/
+  `probability` are dropped.
+- [x] Replaced `ingestClip` with `uploadFile` (`POST /api/repos/:name/ingest?path=`, raw
+  bytes); added `repo` to config.
+- [x] Migrated `send-to-sulion` `capture.ts` to encode + upload; rewrote the transport
+  tests to assert the uploaded `.mid` decodes to the expected notes. `typecheck` + `test`
+  + `build` green.
 
 ## Phase 2 — More extensions (file model, harness-tested)
 
