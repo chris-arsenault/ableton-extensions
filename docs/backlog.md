@@ -15,8 +15,7 @@ final one is completable on a dev host with **no Ableton Live install** and must
 - **External (the `../sulion` repo, another agent):** device pairing, the generic
   file-ingest endpoint, and the device-authed raw **download** (`GET …/raw?path=`) are all
   live. Shared file contract: `../sulion/docs/ableton-file-contract.md`.
-- **Not built yet:** the arrangement-selection extension, lint/CI, and the one-time Live
-  verification.
+- **Not built yet:** lint/CI (Phase 3), and the one-time Live verification (Phase 5).
 
 ## Two standing constraints
 
@@ -57,7 +56,7 @@ generic file upload.
   tests to assert the uploaded `.mid` decodes to the expected notes. `typecheck` + `test`
   + `build` green.
 
-## Phase 2 — More extensions (file model, harness-tested)
+## Phase 2 — More extensions (file model, harness-tested) — DONE
 
 - [x] **Export 1-N clips to Sulion** — a `ClipSlotSelection` action on `send-to-sulion`;
   `captureAndSendAll` renders + uploads each selected MIDI clip (empties skipped); the
@@ -68,10 +67,12 @@ generic file upload.
   `fromMidiFile`, then `createMidiClip` + set `notes`. Added `shared` `downloadFile` +
   `toSdkNotes` (inverse adapter) + lifted the pairing flow into `shared/session.ts`;
   fake host gained the write path (`createMidiClip` / `notes` setter / slot→track parent).
-- [ ] **Send arrangement selection (notes-only)** — `MidiTrack.ArrangementSelection`
-  scope: encode the in-range arrangement notes to a `.mid` and upload. Device-parameter
+- [x] **Send arrangement selection (notes-only)** — `packages/send-arrangement`:
+  `MidiTrack.ArrangementSelection` scope; `shared` `selectionNotes` flattens the in-range
+  arrangement notes (offset to the selection start) and `captureAndSend` uploads one
+  `.mid`. Fake host gained arrangement-track + `arrangementClips` support. Device-parameter
   **automation is not capturable** — the beta SDK exposes only `DeviceParameter.getValue`/
-  `setValue`, no envelopes — so this is notes-only until the SDK adds an automation API.
+  `setValue`, no envelopes — so this stays notes-only until the SDK adds an automation API.
 
 ## Phase 3 — DX + CI
 

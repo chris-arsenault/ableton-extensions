@@ -43,6 +43,11 @@ export interface FakeHostOptions {
   clipSlots?: Array<FakeClip | null>;
   /** Parent track name per `clipSlots` entry (so `clipSlot.parent` resolves a Track). */
   clipSlotTrackNames?: string[];
+  /** MIDI tracks (with arrangement clips at given beats) for ArrangementSelection actions. */
+  arrangementTracks?: Array<{
+    name?: string;
+    clips: Array<{ startTime: number; clip: FakeClip }>;
+  }>;
 }
 
 /** What the active progress dialog has shown, plus a promise that settles on close. */
@@ -59,6 +64,8 @@ export interface FakeExtensionHost {
   clipHandle: Handle;
   /** Handles for the configured `clipSlots`, in order (for `ClipSlotSelection`). */
   clipSlotHandles: Handle[];
+  /** Handles for the configured `arrangementTracks` (for `ArrangementSelection`). */
+  arrangementTrackHandles: Handle[];
   /** MIDI clips created via `ClipSlot.createMidiClip` during the run, in order. */
   createdClips: Array<{ handle: Handle; length: number }>;
   /** Notes written to a clip via the `MidiClip.notes` setter (e.g. a created clip). */
@@ -83,6 +90,8 @@ const SLOT_BASE = 100n; // clip-slot handles: 100, 101, …
 const SLOT_CLIP_BASE = 200n; // the clip in slot i: 200 + i
 const TRACK_BASE = 300n; // the parent track of slot i: 300 + i
 const CREATED_BASE = 400n; // clips created via createMidiClip: 400, 401, …
+const ARR_TRACK_BASE = 500n; // arrangement track i: 500 + i
+const ARR_CLIP_BASE = 600n; // arrangement clips: 600 + i*100 + j
 
 /**
  * Wrap a partial module impl so any method not implemented throws by name instead
@@ -110,6 +119,7 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     language,
     clipSlots = [],
     clipSlotTrackNames = [],
+    arrangementTracks = [],
   } = options;
 
   const appHandle: Handle = { id: ROOT_ID };
@@ -153,6 +163,26 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     }
   });
 
+  // Arrangement tracks → their arrangement clip handles; clip handle → its start beat.
+  const trackArrClipsById = new Map<bigint, Handle[]>();
+  const clipStartById = new Map<bigint, number>();
+  const arrangementTrackHandles: Handle[] = [];
+
+  arrangementTracks.forEach((track, i) => {
+    const trackId = ARR_TRACK_BASE + BigInt(i);
+    classNameById.set(trackId, "MidiTrack");
+    if (track.name != null) trackNameById.set(trackId, track.name);
+    arrangementTrackHandles.push({ id: trackId });
+    const clipHandles: Handle[] = track.clips.map((entry, j) => {
+      const clipId = ARR_CLIP_BASE + BigInt(i) * 100n + BigInt(j);
+      classNameById.set(clipId, "MidiClip");
+      clipById.set(clipId, entry.clip);
+      clipStartById.set(clipId, entry.startTime);
+      return { id: clipId };
+    });
+    trackArrClipsById.set(trackId, clipHandles);
+  });
+
   // Write-path recorders (populated by createMidiClip / the notes setter).
   const createdClips: Array<{ handle: Handle; length: number }> = [];
   const notesByHandle = new Map<bigint, NoteDescription[]>();
@@ -175,6 +205,8 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
         return parentId != null ? { id: parentId } : null;
       },
       trackGetName: (handle) => trackNameById.get(handle.id) ?? "",
+      trackGetArrangementClips: (handle) => trackArrClipsById.get(handle.id) ?? [],
+      clipGetStartTime: (handle) => clipStartById.get(handle.id) ?? 0,
       clipslotCreateMidiClip: (_handle, length, onResult) => {
         const id = CREATED_BASE + BigInt(createdClips.length);
         classNameById.set(id, "MidiClip");
@@ -279,6 +311,7 @@ export function makeFakeExtensionHost(options: FakeHostOptions): FakeExtensionHo
     activation,
     clipHandle,
     clipSlotHandles,
+    arrangementTrackHandles,
     createdClips,
     notesSetOn: (handle: Handle) => notesByHandle.get(handle.id) ?? [],
     progress: { updates, done: closed },

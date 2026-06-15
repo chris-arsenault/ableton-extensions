@@ -1,0 +1,22 @@
+{
+  "name": "@sulion-ableton/send-arrangement",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node24 --outfile=dist/index.js --sourcemap",
+    "build:prod": "esbuild src/index.ts --bundle --platform=node --format=cjs --target=node24 --outfile=dist/index.js --minify",
+    "typecheck": "tsc -p ../../tsconfig.json --noEmit",
+    "start": "npm run build && extensions-cli run",
+    "package": "npm run build:prod && extensions-cli package"
+  },
+  "dependencies": {
+    "@ableton-extensions/sdk": "file:../../vendor/ableton-extensions-sdk-1.0.0-beta.0.tgz",
+    "@sulion-ableton/shared": "*"
+  },
+  "devDependencies": {
+    "@ableton-extensions/cli": "file:../../vendor/ableton-extensions-cli-1.0.0-beta.0.tgz",
+    "@sulion-ableton/test-host": "*"
+  }
+}

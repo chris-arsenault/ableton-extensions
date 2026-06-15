@@ -1,0 +1,7 @@
+{
+  "name": "Send Arrangement to Sulion",
+  "author": "Sulion",
+  "entry": "dist/index.js",
+  "version": "0.0.0",
+  "minimumApiVersion": "1.0.0"
+}
