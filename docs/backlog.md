@@ -15,7 +15,10 @@ final one is completable on a dev host with **no Ableton Live install** and must
 - **External (the `../sulion` repo, another agent):** device pairing, the generic
   file-ingest endpoint, and the device-authed raw **download** (`GET …/raw?path=`) are all
   live. Shared file contract: `../sulion/docs/ableton-file-contract.md`.
-- **Not built yet:** the one-time Live verification (Phase 5).
+- **Feature-complete off-Live (Phase 4 gate passed):** all three extensions built,
+  unit- + fake-host-tested, audited against the SDK reference; `.ablx` archives build.
+- **Not done:** the one-time Live verification (Phase 5) — the only remaining work, and the
+  only step that needs the Ableton machine.
 
 ## Two standing constraints
 
@@ -86,25 +89,58 @@ generic file upload.
   when Ableton publishes the SDK, switch the `@ableton-extensions/*` deps from `file:` to
   the published version and CI goes green.
 
-## Phase 4 — Feature-complete gate
+## Phase 4 — Feature-complete gate — DONE
 
-- [ ] All extensions built, unit-tested, fake-host-tested; `typecheck`/`test`/`build`/
-  `lint` green; `.ablx` archives build.
-- [ ] Review each extension's manifest, entry, and context-menu scope against the SDK
-  reference.
-- [ ] Assemble the Phase 5 checklist from each extension's intended behavior.
+- [x] All extensions built, unit-tested, fake-host-tested; `typecheck`/`test`/`build`/
+  `lint` green (34 pass, 1 gated integration skip); all three `.ablx` archives build via
+  `npm run package`. `test-host` is dev-only (no manifest, no `package` script) and never
+  ships.
+- [x] Audited each extension's manifest, entry, and context-menu scope against the verified
+  SDK reference ([extensions-sdk.md](extensions-sdk.md)) — all clean:
+  - Manifests carry exactly `{name, author, entry, version, minimumApiVersion}`.
+  - Entries are thin: `activate` → `initialize(_, "1.0.0")`, register command(s) + context-menu
+    action(s), resolve handle(s), delegate to `shared`. Tempo via `context.application.song.tempo`.
+  - Scopes: `send-to-sulion` `MidiClip` (→ `getObjectFromHandle(_, MidiClip)`) and
+    `ClipSlotSelection` (→ `selected_clip_slots` → `ClipSlot`); `pull-from-sulion` `ClipSlot`
+    (→ `slot.parent instanceof Track`, `createMidiClip` + `notes` setter); `send-arrangement`
+    `MidiTrack.ArrangementSelection` (→ `selected_lanes`/`time_selection_*`, lanes via
+    `DataModelObject` + `instanceof MidiTrack`, `arrangementClips`).
+- [x] Phase 5 Live checklist assembled below from each extension's intended behavior.
 
 ## Phase 5 — Live verification (one pass, on the Ableton machine)
 
-Install Live 12.4.5 + Node 24, set `EXTENSION_HOST_PATH`, `extensions-cli run` each
-extension, and walk the checklist once:
+The only remaining work, and the only step that needs Live. Install Live 12.4.5 Suite + Node
+24.16.0, set `EXTENSION_HOST_PATH` (path to `ExtensionHostNodeModule.node`), and either
+`extensions-cli run` each package from source or install the built `.ablx`. Have Sulion
+running and reachable (`SULION_BASE_URL`); pick a repo (`SULION_REPO`, default `ableton`).
+Walk the checklist once:
 
-- [ ] First-run pairing from inside Live (browser opens, approve, token cached in
-  `environment.storageDirectory`).
-- [ ] `send-to-sulion`: right-click a MIDI clip → renders a `.mid` → uploads; status
-  shows success.
-- [ ] 401 re-pair: revoke the token, re-run, confirm re-pair + success.
-- [ ] Round-trip fidelity against a real Live clip (pitch / timing / velocity).
-- [ ] Pull-back, tempo/markers, and arrangement extensions each exercised.
-- [ ] Progress + error UX in the real dialog (cancel, network down).
-- [ ] Log host-only surprises; fix, rebuild, re-verify the affected extension.
+**Pairing (do first, shared by all three)**
+- [ ] First-run from inside Live: an unpaired extension opens the system browser to the
+  pairing page; approve; the device token is cached under `environment.storageDirectory`.
+- [ ] 401 re-pair: revoke/delete the token in Sulion, re-trigger any extension, confirm it
+  re-pairs and then succeeds.
+
+**send-to-sulion**
+- [ ] Right-click one MIDI clip → "Send to Sulion" → renders a `.mid`, uploads to
+  `clips/<clip-name>.mid`; status shows success.
+- [ ] Select N session slots → "Send selected clips to Sulion" → each MIDI clip uploaded,
+  empty slots / audio clips skipped; status reports the count.
+- [ ] Round-trip fidelity: pull a sent clip back (below) and confirm pitch / timing /
+  velocity match the source clip.
+
+**pull-from-sulion**
+- [ ] Right-click a session clip slot → "Pull from Sulion" → downloads
+  `clips/<track-name>.mid`, creates a MIDI clip in the slot with the decoded notes.
+- [ ] Missing file: pull a slot whose track has no matching clip → friendly not-found status,
+  no clip created.
+
+**send-arrangement**
+- [ ] Make a timeline selection across one or more MIDI tracks → right-click →
+  "Send arrangement to Sulion" → in-range notes (offset to the selection start) upload as one
+  `.mid`. (Notes only — no automation; SDK gap.)
+
+**Cross-cutting UX**
+- [ ] Progress + error UX in the real dialog: cancel mid-run leaves a clean "Cancelled";
+  Sulion unreachable shows the actionable "couldn't reach Sulion" status, not a raw error.
+- [ ] Log any host-only surprises; fix, rebuild, re-verify the affected extension.
