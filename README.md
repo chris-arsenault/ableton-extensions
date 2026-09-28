@@ -1,5 +1,10 @@
 # ableton-extensions
 
+> **Retired integration (2026-09-28):** Sulion has removed device pairing,
+> tokens and device file-transfer endpoints. Do not deploy these extension
+> flows or attempt re-pairing. The material below records the former contract;
+> it is not a supported integration. No replacement authentication is planned.
+
 Personal [Ableton Live Extensions](https://ableton.github.io/extensions-sdk/) — small tools that run inside Live (Extensions SDK) and bridge it into the [Sulion](../sulion) family of services.
 
 First and reference extension: **send-to-sulion** — right-click a MIDI clip → render it to a `.mid` file and upload it to Sulion over an authenticated HTTP call.

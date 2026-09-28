@@ -1,5 +1,10 @@
 # Sulion API contract
 
+> **Retired integration (2026-09-28):** Sulion has removed device pairing,
+> tokens and device file-transfer endpoints. Do not deploy these extension
+> flows or attempt re-pairing. The material below records the former contract;
+> it is not a supported integration. No replacement authentication is planned.
+
 The **only** coupling between this repo and Sulion. Two concerns: device pairing
 (auth) and clip transfer (file upload). These endpoints live in the **`../sulion` repo**
 (Rust backend); this doc is authoritative for both sides — change it here and mirror the

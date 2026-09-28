@@ -1,5 +1,10 @@
 # Auth design — device pairing
 
+> **Retired integration (2026-09-28):** Sulion has removed device pairing,
+> tokens and device file-transfer endpoints. Do not deploy these extension
+> flows or attempt re-pairing. The material below records the former contract;
+> it is not a supported integration. No replacement authentication is planned.
+
 ## Why not just paste an API key
 
 Two SDK constraints shape this:

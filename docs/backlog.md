@@ -1,5 +1,10 @@
 # Backlog — the plan
 
+> **Retired integration (2026-09-28):** Sulion has removed device pairing,
+> tokens and device file-transfer endpoints. Do not deploy these extension
+> flows or attempt re-pairing. The material below records the former contract;
+> it is not a supported integration. No replacement authentication is planned.
+
 One ordered plan for the extensions/client code in this repo. Every phase except the
 final one is completable on a dev host with **no Ableton Live install** and must leave
 `npm run typecheck`, `npm test`, and `npm run build` green.
